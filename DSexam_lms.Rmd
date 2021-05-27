@@ -1,0 +1,189 @@
+---
+title: "DSexam_lms"
+output: html_document
+---
+
+
+```{r}
+pacman::p_load(tidyverse, lmerTest, lme4, ggplot2, effects)
+```
+
+```{r}
+library(tidyverse)
+library(data.table)
+library(lme4)
+library(lmerTest)
+library(ggplot2)
+library(effects)
+library(MuMIn)
+
+```
+
+```{r}
+setwd("/Users/Blanka/Desktop/DataScience/exam")
+
+df <- read.csv("datforR.csv")
+```
+
+```{r}
+df$sex <- as.factor(df$sex)
+df$genre <- as.factor(df$genre)
+df$artist <- as.factor(df$artist)
+```
+
+```{r}
+df_wlen <- df %>% 
+  group_by(sex, year, genre, artist) %>%
+  summarise(mean_word_len = mean(mean_word_len)) 
+
+df_wlen_M <- df_wlen %>% 
+  filter(sex == 0 )
+
+df_wlen_F <- df_wlen %>% 
+  filter(sex == 1 )
+```
+
+```{r}
+df_songl <- df %>% 
+  group_by(sex, year, genre, artist) %>%
+  summarise(song_len = mean(song_len))
+
+df_songl_M <- df_songl %>% 
+  filter(sex == 0 )
+
+df_songl_F <- df_songl %>% 
+  filter(sex == 1 )
+```
+
+```{r}
+df_var <- df %>% 
+  group_by(sex, year, genre, artist) %>%
+  summarise(variety = mean(variety))
+
+df_var_M <- df_var %>% 
+  filter(sex == 0 )
+
+df_var_F <- df_var %>% 
+  filter(sex == 1 )
+
+```
+
+```{r}
+mwlen <- lmer(mean_word_len ~ year + sex + (1|artist) + (1|genre), df_wlen)
+summary(mwlen)
+r.squaredGLMM(mwlen)
+mwlenM <- lmer(mean_word_len ~ year + (1|artist) + (1|genre), df_wlen_M)
+summary(mwlenM)
+r.squaredGLMM(mwlen)
+mwlenF <- lmer(mean_word_len ~ year + (1|artist) + (1|genre), df_wlen_F)
+summary(mwlenF)
+r.squaredGLMM(mwlen)
+
+mwlen_eff_y <- effects::effect(term= "year", mod= mwlen)
+summary(mwlen_eff_y)
+mwlen_eff <- as.data.frame(mwlen_eff_y)
+
+mwlen_eff_m <- effects::effect(term= "year", mod= mwlenM)
+summary(mwlen_eff_m)
+mwlen_effM <- as.data.frame(mwlen_eff_m)
+
+mwlen_eff_f <- effects::effect(term= "year", mod= mwlenF)
+summary(mwlen_eff_f)
+mwlen_effF <- as.data.frame(mwlen_eff_f)
+
+mwlen_plot <- ggplot() + 
+  #2
+  geom_point(data=df_wlen_M, aes(year, mean_word_len), color = 'black') + 
+  geom_point(data=df_wlen_F, aes(year, mean_word_len), color = 'grey') + 
+  #3
+  geom_point(data=mwlen_effM, aes(x=year, y=fit), color="blue") + 
+  geom_point(data=mwlen_effF, aes(x=year, y=fit), color="orange") + 
+  #4
+  geom_line(data=mwlen_effM, aes(x=year, y=fit), color="blue") +
+  geom_line(data=mwlen_effF, aes(x=year, y=fit), color="orange") + 
+  #5
+  geom_ribbon(data=mwlen_effM, aes(x=year, ymin=lower, ymax=upper), alpha= 0.3, fill="blue") + 
+  geom_ribbon(data=mwlen_effF, aes(x=year, ymin=lower, ymax=upper), alpha= 0.3, fill="orange") + 
+  #6
+  labs(x="Year", y="Mean word length (stopwords removed)")
+
+mwlen_plot
+```
+
+
+```{r}
+
+msongl <- lmer(song_len ~ year + sex + (1|artist) + (1|genre), df_songl)
+summary(msongl)
+r.squaredGLMM(msongl)
+msonglM <- lmer(song_len ~ year + (1|artist) + (1|genre), df_songl_M)
+summary(msonglM)
+r.squaredGLMM(msonglM)
+msonglF <- lmer(song_len ~ year + (1|artist) + (1|genre), df_songl_F)
+summary(msonglF)
+r.squaredGLMM(msonglF)
+
+msongl_eff_m <- effects::effect(term= "year", mod= msonglM)
+summary(msongl_eff_m)
+msongl_effM <- as.data.frame(msongl_eff_m)
+
+msongl_eff_f <- effects::effect(term= "year", mod= msonglF)
+summary(msongl_eff_f)
+msongl_effF <- as.data.frame(msongl_eff_f)
+
+msongl_plot <- ggplot() + 
+  #2
+  geom_point(data=df_songl_M, aes(year, song_len), color = 'black') + 
+  geom_point(data=df_songl_F, aes(year, song_len), color = 'grey') + 
+  #3
+  geom_point(data=msongl_effM, aes(x=year, y=fit), color="blue") + 
+  geom_point(data=msongl_effF, aes(x=year, y=fit), color="orange") + 
+  #4
+  geom_line(data=msongl_effM, aes(x=year, y=fit), color="blue") +
+  geom_line(data=msongl_effF, aes(x=year, y=fit), color="orange") + 
+  #5
+  geom_ribbon(data=msongl_effM, aes(x=year, ymin=lower, ymax=upper), alpha= 0.3, fill="blue") + 
+  geom_ribbon(data=msongl_effF, aes(x=year, ymin=lower, ymax=upper), alpha= 0.3, fill="orange") + 
+  #6
+  labs(x="Year", y="Mean song length")
+
+msongl_plot
+```
+```{r}
+mvar <- lmer(variety ~ year + sex + (1|artist) + (1|genre), df_var)
+summary(mvar)
+r.squaredGLMM(mvar)
+mvarM <- lmer(variety ~ year + (1|artist) + (1|genre), df_var_M)
+summary(mvarM)
+r.squaredGLMM(mvar)
+mvarF <- lmer(variety ~ year + (1|artist) + (1|genre), df_var_F)
+summary(mvarF)
+r.squaredGLMM(mvar)
+
+mvar_eff_m <- effects::effect(term= "year", mod= mvarM)
+summary(mvar_eff_m)
+mvar_effM <- as.data.frame(mvar_eff_m)
+
+mvar_eff_f <- effects::effect(term= "year", mod= mvarF)
+summary(mvar_eff_f)
+mvar_effF <- as.data.frame(mvar_eff_f)
+
+mvar_plot <- ggplot() + 
+  #2
+  geom_point(data=df_var_M, aes(year, variety), color = 'black') + 
+  geom_point(data=df_var_F, aes(year, variety), color = 'grey') + 
+  #3
+  geom_point(data=mvar_effM, aes(x=year, y=fit), color="blue") + 
+  geom_point(data=mvar_effF, aes(x=year, y=fit), color="orange") + 
+  #4
+  geom_line(data=mvar_effM, aes(x=year, y=fit), color="blue") +
+  geom_line(data=mvar_effF, aes(x=year, y=fit), color="orange") + 
+  #5
+  geom_ribbon(data=mvar_effM, aes(x=year, ymin=lower, ymax=upper), alpha= 0.3, fill="blue") + 
+  geom_ribbon(data=mvar_effF, aes(x=year, ymin=lower, ymax=upper), alpha= 0.3, fill="orange") + 
+  #6
+  labs(x="Year", y="Variety (unique words / total number of words)")
+
+mvar_plot
+```
+
